@@ -1,6 +1,6 @@
 use chrono::Datelike;
 use syslog_loose::{parse_message_with_year_exact, Message};
-use tracing::{debug, info};
+use tracing::{debug, error, info};
 
 pub struct Listener<F>
 where
@@ -31,10 +31,12 @@ where
 
             debug!("parsing `{}`", str_buf);
             let parsed_message =
-                parse_message_with_year_exact(str_buf, |_| chrono::Local::now().year())
-                    .map_err(|e| eyre::eyre!(e))?;
+                parse_message_with_year_exact(str_buf, |_| chrono::Local::now().year());
 
-            (self.callback)(parsed_message);
+            match parsed_message {
+                Ok(msg) => (self.callback)(msg),
+                Err(e) => error!("failed to parse syslog line: `{}`", e),
+            }
         }
     }
 }
