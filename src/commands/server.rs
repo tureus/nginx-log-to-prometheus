@@ -3,7 +3,7 @@ use clap::{Arg, ArgMatches, Command};
 use prometheus::core::{AtomicU64, GenericCounterVec};
 use serde::Deserialize;
 use std::collections::HashMap;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
 pub fn command() -> Command {
     Command::new("server").arg(
@@ -72,7 +72,7 @@ fn update_bytes_sent(bytes_sent_counter: &GenericCounterVec<AtomicU64>, nginx_ms
 
     match nginx_msg.body_bytes_sent.parse::<u64>() {
         Ok(bytes_sent) => {
-            info!("bumping {:?} by {}", labels, bytes_sent);
+            debug!("bumping {:?} by {}", labels, bytes_sent);
             bytes_sent_counter.with(&labels).inc_by(bytes_sent)
         }
         Err(e) => error!(
