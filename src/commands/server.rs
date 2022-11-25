@@ -15,12 +15,16 @@ pub fn command() -> Command {
 pub async fn run(matches: &ArgMatches) -> eyre::Result<()> {
     let bind = matches.get_one::<String>("bind").unwrap();
 
-    // let prometheus_registry = prometheus::Registry::default();
-    // let metrics = prometheus_registry.gather();
-    // info!("metrics: {:?}", metrics);
+    let backend_counter = prometheus::Counter::new("backend", "backend")?;
+
+    let prometheus_registry = prometheus::Registry::default();
+    prometheus_registry.register(Box::new(backend_counter.clone()))?;
 
     let mut l = Listener::new(bind.to_owned(), |msg| {
-        info!("msg: {:?}", msg);
+        info!(
+            "facility: {:?}; severity: {:?}; hostname: {:?}; appname: {:?}; msg: {}",
+            msg.facility, msg.severity, msg.hostname, msg.appname, msg.msg
+        );
     });
     l.run().await?;
 
