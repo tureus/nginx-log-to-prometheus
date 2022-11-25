@@ -82,7 +82,7 @@ fn update_bytes_sent(bytes_sent_counter: &GenericCounterVec<AtomicU64>, nginx_ms
     };
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Deserialize)]
+#[derive(Default, Debug, Clone, Eq, PartialEq, Deserialize)]
 pub struct NGINXMessage {
     pub time_local: String,
     pub remote_addr: String,
