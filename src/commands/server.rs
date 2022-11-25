@@ -1,6 +1,7 @@
 use crate::listener::Listener;
 use clap::{Arg, ArgMatches, Command};
 use prometheus::core::{AtomicU64, GenericCounterVec};
+use prometheus::HistogramVec;
 use serde::Deserialize;
 use std::collections::HashMap;
 use tracing::{debug, error, info};
@@ -21,21 +22,30 @@ pub async fn run(matches: &ArgMatches) -> eyre::Result<()> {
     let bytes_sent_counter = prometheus::IntCounterVec::new(
         prometheus::Opts::new("bytes", "Bytes transferred out of upstreams"),
         &[
-            "request_uri",
+            "uri",
             "nginx_version",
             "host",
             "upstream_status",
             "software",
         ],
     )?;
-    let duration_histogram = prometheus::Histogram::with_opts(prometheus::HistogramOpts::new(
-        "duration_histogram",
-        "Duration of requests to upstream servers",
-    ))?;
+    let request_duration_histogram = prometheus::HistogramVec::new(
+        prometheus::HistogramOpts::new(
+            "request_duration",
+            "Duration of requests to upstream servers",
+        ),
+        &[
+            "uri",
+            "nginx_version",
+            "host",
+            "upstream_status",
+            "software",
+        ],
+    )?;
 
     let prometheus_registry = prometheus::Registry::new_custom(Some("nginx".into()), None)?;
     prometheus_registry.register(Box::new(bytes_sent_counter.clone()))?;
-    prometheus_registry.register(Box::new(duration_histogram.clone()))?;
+    prometheus_registry.register(Box::new(request_duration_histogram.clone()))?;
 
     let mut exporter_server_builder =
         prometheus_exporter::Builder::new("0.0.0.0:9394".parse().unwrap());
@@ -53,6 +63,7 @@ pub async fn run(matches: &ArgMatches) -> eyre::Result<()> {
         match parsed_nginx_msg {
             Ok(nginx_msg) => {
                 update_bytes_sent(&bytes_sent_counter, &nginx_msg);
+                update_request_time(&request_duration_histogram, &nginx_msg);
             }
             Err(e) => error!("failed to parse msg `{}`, err: `{}`", msg.msg, e),
         };
@@ -64,7 +75,7 @@ pub async fn run(matches: &ArgMatches) -> eyre::Result<()> {
 
 fn update_bytes_sent(bytes_sent_counter: &GenericCounterVec<AtomicU64>, nginx_msg: &NGINXMessage) {
     let mut labels = HashMap::new();
-    labels.insert("request_uri", nginx_msg.request_uri.as_str());
+    labels.insert("uri", nginx_msg.uri.as_str());
     labels.insert("software", nginx_msg.software.as_str());
     labels.insert("nginx_version", nginx_msg.nginx_version.as_str());
     labels.insert("host", nginx_msg.host.as_str());
@@ -74,6 +85,26 @@ fn update_bytes_sent(bytes_sent_counter: &GenericCounterVec<AtomicU64>, nginx_ms
         Ok(bytes_sent) => {
             debug!("bumping {:?} by {}", labels, bytes_sent);
             bytes_sent_counter.with(&labels).inc_by(bytes_sent)
+        }
+        Err(e) => error!(
+            "failed to parse `body_bytes_sent` {}, err: `{}`",
+            nginx_msg.body_bytes_sent, e
+        ),
+    };
+}
+
+fn update_request_time(bytes_sent_counter: &HistogramVec, nginx_msg: &NGINXMessage) {
+    let mut labels = HashMap::new();
+    labels.insert("uri", nginx_msg.uri.as_str());
+    labels.insert("software", nginx_msg.software.as_str());
+    labels.insert("nginx_version", nginx_msg.nginx_version.as_str());
+    labels.insert("host", nginx_msg.host.as_str());
+    labels.insert("upstream_status", nginx_msg.upstream_status.as_str());
+
+    match nginx_msg.request_time.parse::<f64>() {
+        Ok(request_time) => {
+            debug!("bumping {:?} by {}", labels, request_time);
+            bytes_sent_counter.with(&labels).observe(request_time)
         }
         Err(e) => error!(
             "failed to parse `body_bytes_sent` {}, err: `{}`",
