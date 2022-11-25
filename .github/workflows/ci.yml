@@ -109,6 +109,11 @@ jobs:
   build:
     name: build
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust:
+          - stable
+    #          - 1.64.0
     needs: [test, fmt, clippy]
     steps:
       - name: Checkout sources
