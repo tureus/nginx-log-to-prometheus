@@ -1,10 +1,9 @@
 use chrono::Datelike;
 use syslog_loose::{parse_message_with_year_exact, Message};
-use tokio::net::UdpSocket;
 
 pub struct Listener<F>
 where
-    F: FnMut(Message<&str>) -> (),
+    F: FnMut(Message<&str>),
 {
     uri: String,
     callback: F,
@@ -12,7 +11,7 @@ where
 
 impl<F> Listener<F>
 where
-    F: FnMut(Message<&str>) -> (),
+    F: FnMut(Message<&str>),
 {
     pub fn new(uri: String, callback: F) -> Self {
         Listener { uri, callback }
@@ -33,7 +32,5 @@ where
 
             (self.callback)(parsed_message);
         }
-
-        Ok(())
     }
 }

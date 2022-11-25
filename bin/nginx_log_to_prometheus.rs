@@ -1,7 +1,3 @@
-use clap;
-use tracing::Subscriber;
-use tracing_subscriber::FmtSubscriber;
-
 use nginx_log_to_prometheus_rs::commands;
 
 #[tokio::main]

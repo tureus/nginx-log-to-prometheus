@@ -1,7 +1,5 @@
-use crate::listener::Listener;
 use clap::{Arg, ArgMatches, Command};
 use tokio::net::UdpSocket;
-use tracing::info;
 
 pub fn command() -> Command {
     Command::new("client")
