@@ -1,4 +1,5 @@
 # Based on https://github.com/actions-rs/meta/blob/master/recipes/msrv.md
+# Consider switching to https://github.com/dtolnay/rust-toolchain
 
 on: [push, pull_request]
 
@@ -36,7 +37,7 @@ jobs:
       matrix:
         rust:
           - stable
-          - 1.31.0
+          - 1.64.0
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
@@ -49,7 +50,6 @@ jobs:
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
-        continue-on-error: true  # WARNING: only for this example, remove it!
         with:
           command: test
 
@@ -60,7 +60,7 @@ jobs:
       matrix:
         rust:
           - stable
-          - 1.31.0
+          - 1.64.0
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
@@ -88,7 +88,7 @@ jobs:
       matrix:
         rust:
           - stable
-          - 1.31.0
+          - 1.64.0
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
