@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM redhat/ubi8-micro
 
 ADD target/release/nginx-log-to-prometheus /usr/local/bin/
 

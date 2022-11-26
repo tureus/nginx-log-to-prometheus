@@ -4,13 +4,14 @@ use nginx_log_to_prometheus_rs::commands;
 async fn main() -> eyre::Result<()> {
     setup_tracing()?;
 
-    let matches = clap_command().get_matches();
+    let command = clap_command();
+    let matches = command.get_matches();
 
     match matches.subcommand() {
         Some(("server", matches)) => commands::server::run(matches).await?,
         Some(("client", matches)) => commands::client::run(matches).await?,
         Some((other, _)) => panic!("don't know how to handle {}", other),
-        None => panic!("hey"),
+        None => panic!("not command matched. check the --help output?"),
     }
 
     Ok(())
@@ -20,6 +21,7 @@ pub fn clap_command() -> clap::Command {
     clap::Command::new("nginx_log_to_prometheus")
         .subcommand(commands::server::command())
         .subcommand(commands::client::command())
+        .arg_required_else_help(true)
 }
 
 fn setup_tracing() -> eyre::Result<()> {
